@@ -9,14 +9,13 @@ import random
 import datetime
 from torch.utils.data import DataLoader, ConcatDataset, TensorDataset
 from transformers import AdamW, get_linear_schedule_with_warmup, get_constant_schedule_with_warmup
+from tqdm import tqdm
 
 from eval import test_acc
 from data import get_base_dataset
 from models import load_backbone, Classifier
-from training import train_base, train_mixup, train_aug
 from common import CKPT_PATH, parse_args
-from utils import Logger, set_seed, set_model_path, save_model, load_augment, load_selected_aug, add_mislabel_dataset, \
-    pruning_dataset
+from utils import Logger, set_seed, set_model_path, save_model, add_mislabel_dataset, pruning_dataset, cut_input, AverageMeter
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -27,6 +26,9 @@ def main():
     set_seed(args)
 
     ##### Set logs
+    # Data pruning
+    if args.data_ratio < 1.0 and args.selected is not None:
+        args.train_type = args.train_type + "_" + args.selected
     log_name = f"{args.dataset}_R{args.data_ratio}_{args.backbone}_{args.train_type}_GA{args.grad_accumulation}_N{args.num_sub}_S{args.seed}"
 
     logger = Logger(log_name)
@@ -38,63 +40,10 @@ def main():
     backbone, tokenizer = load_backbone(args.backbone)
 
     logger.log('Initializing dataset...')
-    dataset, train_loader, val_loader, test_loader = get_base_dataset(args.dataset, tokenizer, args.batch_size, args.data_ratio, args.seed)
+    dataset, train_loader, val_loader, test_loader = get_base_dataset(args.dataset, tokenizer, args.batch_size, args.seed)
 
-    if args.num_sub < 1.0:
-        n_sub = int(args.num_sub * len(dataset.train_dataset))
-        data = dataset.train_dataset[:][0]
-        labels = dataset.train_dataset[:][1]
-        idxs = dataset.train_dataset[:][2]
-
-        if args.dataset == 'mnli':
-            measures = np.load('mnli_0.1_all_measurements.npy')
-        else:
-            measures = np.load('0105_qnli_large_1.0_all_measurements_false.npy')
-
-        if args.selected_idx is not None:
-            indices = np.load(args.selected_idx)
-            if len(indices.shape) == 2:
-                maps = {'0.83': 0, '0.66': 1, '0.5': 2, '0.33': 3, '0.25': 4, '0.17': 5, '0.13': 6, '0.09': 7, '0.05': 8}
-                sel_idx = indices[maps[str(args.num_sub)]][:n_sub]
-                print('here')
-                print(len(sel_idx))
-            else:
-                sel_idx = indices[:n_sub]
-        elif args.selected == 'easy':
-            scores = measures[:, 0]
-            sel_idx = np.argsort(scores)[::-1][:n_sub]
-            sel_idx = np.array(sel_idx)
-        elif args.selected == 'hard':
-            scores = measures[:, 0]
-            sel_idx = np.argsort(scores)[:n_sub]
-            sel_idx = np.array(sel_idx)
-        elif args.selected == 'ambig':
-            scores = measures[:, 1]
-            sel_idx = np.argsort(scores)[::-1][:n_sub]
-            sel_idx = np.array(sel_idx)
-        elif args.selected == 'ent':
-            scores = measures[:, 5]
-            sel_idx = np.argsort(scores)[::-1][:n_sub]
-            sel_idx = np.array(sel_idx)
-        elif args.selected == 'dens':
-            scores = measures[:, 21]
-            sel_idx = np.argsort(scores)[::-1][:n_sub]
-            sel_idx = np.array(sel_idx)
-        else:
-            sorted_idx = torch.randperm(len(data))
-            sel_idx = sorted_idx[:n_sub]
-
-        sub_data = data[sel_idx, :]
-        sub_labels = labels[sel_idx, :]
-        sub_idxs = idxs[sel_idx]
-
-        sub_dataset = TensorDataset(sub_data, sub_labels, sub_idxs)
-        train_loader = DataLoader(sub_dataset, shuffle=True, drop_last=True, batch_size=args.batch_size, num_workers=4)
-
-    # Adding syntactic noise label to train dataset
-    if args.noisy_label_criteria is not None or args.noisy_label_path is not None:
-        logger.log('noisy setup on')
-        train_loader = add_mislabel_dataset(args, dataset.train_dataset, dataset.class_idx)
+    if args.data_ratio < 1.0 or (args.noisy_label_criteria is not None or args.noisy_label_path is not None):
+        train_loader = set_new_loader(args, dataset)        
 
     logger.log('Initializing model and optimizer...')
     if args.dataset == 'wino':
@@ -107,26 +56,16 @@ def main():
 
     # Set optimizer (1) fixed learning rate and (2) no weight decay
     optimizer = optim.Adam(model.parameters(), lr=args.model_lr, weight_decay=0)
-    #optimizer = AdamW(model.parameters(), lr=args.model_lr, eps=1e-8)
     t_total = len(train_loader) * args.epochs
-    if args.linear:
-        logger.log('Lr schedule: Linear')
-        scheduler = get_linear_schedule_with_warmup(optimizer, num_warmup_steps = int(0.06 * t_total), num_training_steps=t_total) 
-    else:
-        logger.log('Lr schedule: Constant')
-        scheduler = get_constant_schedule_with_warmup(optimizer, num_warmup_steps = int(0.06 * t_total)) 
-
-    if torch.cuda.device_count() > 1:
-        model = nn.DataParallel(model)
-
+    
+    logger.log('Lr schedule: Linear')
+    scheduler = get_linear_schedule_with_warmup(optimizer, num_warmup_steps = int(0.06 * t_total), num_training_steps=t_total) 
+    
     logger.log('==========> Start training ({})'.format(args.train_type))
     best_acc, final_acc = 0, 0
-    aug_src =None
     
     for epoch in range(1, args.epochs + 1):
-        #best_acc, final_acc = eval_func(args, model, val_loader, test_loader, logger, best_acc, final_acc)
-        for _ in range(1):
-            train_func(args, train_loader, model, optimizer, scheduler, epoch, logger, aug_src)
+        train_base(args, train_loader, model, optimizer, scheduler, epoch, logger)
         best_acc, final_acc = eval_func(args, model, val_loader, test_loader, logger, best_acc, final_acc)
 
         # Save model
@@ -136,16 +75,56 @@ def main():
    
     logger.log('================>>>>>> Final Test Accuracy: {}'.format(final_acc))
 
-def train_func(args, train_loader, model, optimizer, scheduler, epoch, logger, aug_src):
-    if 'base' in args.train_type or 'select' in args.train_type:
-        train_base(args, train_loader, model, optimizer, scheduler, epoch, logger)
-    elif 'mixup' in args.train_type:
-        train_mixup(args, train_loader, model, optimizer, epoch, logger)
-    elif args.aug_type is not None:
-        train_aug(args, train_loader, model, optimizer, aug_src, epoch, logger)
-    else:
-        logger.log("========== Error: Please set the proper training method ==========")
+def train_base(args, loader, model, optimizer, scheduler, epoch=0, logger=None):
+    model.train()
 
+    losses = dict()
+    losses['cls'] = AverageMeter()
+    losses['cls_acc'] = AverageMeter()
+
+    if args.dataset == 'stsb':
+        criterion = nn.MSELoss(reduction='none')
+    else:
+        criterion = nn.CrossEntropyLoss(reduction='none')
+    
+    steps = epoch * len(loader)
+    for i, (tokens, labels, _) in enumerate(tqdm(loader)):
+        steps += 1
+        batch_size = tokens.size(0)
+        if args.dataset == 'wino':
+            tokens = tokens[:, 0, :, :]
+            labels = labels - 1
+        else:
+            tokens, _ = cut_input(args, tokens)
+
+        tokens = tokens.to(device)
+        labels = labels.to(device).squeeze(1)
+
+        out_cls = model(tokens)
+        loss = criterion(out_cls, labels).mean()
+        (loss / args.grad_accumulation).backward()
+        scheduler.step()
+        if steps % args.grad_accumulation == 0:
+            torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+            optimizer.step()
+            optimizer.zero_grad()
+
+        # cls_acc
+        _, pred_cls = out_cls.max(dim=1)
+        corrects = (pred_cls == labels).float()
+        acc_cls = corrects.sum() / batch_size
+
+        losses['cls'].update(loss.item(), batch_size)
+        losses['cls_acc'].update(acc_cls.item(), batch_size)
+
+    msg = '[Epoch %2d] [AccC %.3f] [LossC %.3f]' % (epoch, losses['cls_acc'].average, losses['cls'].average)
+
+    if logger:
+        logger.log(msg)
+    else:
+        print(msg)
+
+    
 def eval_func(args, model, val_loader, test_loader, logger, best_acc, final_acc):
     # other_metric; [mcc, f1, p, s]
     acc, other_metric = test_acc(args, val_loader, model, logger)
@@ -173,8 +152,7 @@ def eval_func(args, model, val_loader, test_loader, logger, best_acc, final_acc)
             t_metric = t_acc
 
         # Update test accuracy based on validation performance
-        best_acc = metric
-        final_acc = t_metric
+        best_acc, final_acc = metric, t_metric
 
         if args.dataset == 'mrpc' or args.dataset == 'qqp':
             logger.log('========== Test Acc/F1 ==========')
@@ -192,6 +170,51 @@ def eval_func(args, model, val_loader, test_loader, logger, best_acc, final_acc)
             logger.log('Test acc: {:.3f}'.format(final_acc))
 
     return best_acc, final_acc
+
+def set_new_loader(args, dataset):
+    # Adding syntactic noise label to train dataset
+    if args.noisy_label_criteria is not None or args.noisy_label_path is not None:
+        train_loader = add_mislabel_dataset(args, dataset.train_dataset, dataset.class_idx)
+    else:
+        n_sub = int(args.data_ratio * len(dataset.train_dataset))
+        data, labels, idxs = dataset.train_dataset[:][0], dataset.train_dataset[:][1], dataset.train_dataset[:][2]
+        measures = np.load("./gen_info/{}_{}_infoverse.npy".format(args.dataset, args.backbone))
+
+        if args.selected_idx is not None:
+            indices = np.load(args.selected_idx)
+            if len(indices.shape) == 2:
+                maps = {'0.83': 0, '0.66': 1, '0.5': 2, '0.33': 3, '0.25': 4, '0.17': 5, '0.13': 6, '0.09': 7, '0.05': 8}
+                sel_idx = indices[maps[str(args.data_ratio)]][:n_sub]
+            else:
+                sel_idx = indices[:n_sub]
+        elif args.selected == 'easy':
+            scores = measures[:, 0]
+            sel_idx = np.argsort(scores)[::-1][:n_sub]
+            sel_idx = np.array(sel_idx)
+        elif args.selected == 'hard':
+            scores = measures[:, 0]
+            sel_idx = np.argsort(scores)[:n_sub]
+            sel_idx = np.array(sel_idx)
+        elif args.selected == 'ambig':
+            scores = measures[:, 1]
+            sel_idx = np.argsort(scores)[::-1][:n_sub]
+            sel_idx = np.array(sel_idx)
+        elif args.selected == 'ent':
+            scores = measures[:, 5]
+            sel_idx = np.argsort(scores)[::-1][:n_sub]
+            sel_idx = np.array(sel_idx)
+        elif args.selected == 'dens':
+            scores = measures[:, 21]
+            sel_idx = np.argsort(scores)[::-1][:n_sub]
+            sel_idx = np.array(sel_idx)
+        else:
+            sorted_idx = torch.randperm(len(data))
+            sel_idx = sorted_idx[:n_sub]
+
+        sub_dataset = TensorDataset(data[sel_idx, :], labels[sel_idx, :], idxs[sel_idx])
+        train_loader = DataLoader(sub_dataset, shuffle=True, drop_last=True, batch_size=args.batch_size, num_workers=4)
+    
+    return train_loader
 
 if __name__ == "__main__":
     main()
