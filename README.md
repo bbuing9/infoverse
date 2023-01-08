@@ -9,8 +9,10 @@ by [Jaehyung Kim](https://sites.google.com/view/jaehyungkim), [Yekyung Kim](http
 * `python3`
 * `pytorch >= 1.6.0`
 * `transformers >= 4.0.0`
+* `datasets`
 * `torchvision`
 * `tqdm`
+* `scikit-learn`
 
 ## Scripts
 Please check out `run.sh` for all the scripts to reproduce the results.
