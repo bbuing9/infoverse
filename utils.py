@@ -80,9 +80,38 @@ def save_model(args, model, log_dir, dataset, epoch, add_str=None):
         model = model.module
 
     os.makedirs(log_dir, exist_ok=True)
-    model_path = set_model_path(args, dataset, epoch, add_str)
+    model_path = "epoch" + str(epoch) + '.model'
     save_path = os.path.join(log_dir, model_path)
     torch.save(model.state_dict(), save_path)
+
+def cut_input(args, tokens):
+    if 'roberta' in args.backbone:
+        attention_mask = (tokens != 1).float()
+    else:
+        attention_mask = (tokens > 0).float()
+    max_len = int(torch.max(attention_mask.sum(dim=1)))
+    return tokens[:, :max_len], attention_mask[:, :max_len]
+
+class AverageMeter(object):
+    """Computes and stores the average and current value"""
+
+    def __init__(self):
+        self.value = 0
+        self.average = 0
+        self.sum = 0
+        self.count = 0
+
+    def reset(self):
+        self.value = 0
+        self.average = 0
+        self.sum = 0
+        self.count = 0
+
+    def update(self, value, n=1):
+        self.value = value
+        self.sum += value * n
+        self.count += n
+        self.average = self.sum / self.count
 
 def get_raw_data(args, dataset, tokenizer):
     temp_loader = DataLoader(dataset.train_dataset, shuffle=False, drop_last=False, batch_size=1, num_workers=4)
@@ -103,37 +132,6 @@ def get_raw_data(args, dataset, tokenizer):
 
     with open(orig_src_loc + '_label.txt', "w") as fp:
         json.dump(train_labels, fp)
-
-def augmenting(args, dataset, tokenizer, save_loc):
-    # Generate text file for raw data
-    print('========== Loading raw data ==========')
-    get_raw_data(args, dataset, tokenizer)
-    print('========== Constructing augmented samples ==========')
-    generate_augments(args, tokenizer, save_loc)
-
-def load_augment(args, dataset, tokenizer):
-    aug_src_loc = './pre_augment/' + args.dataset + '_' + args.aug_type + '_' + args.backbone
-
-    if not os.path.exists(aug_src_loc + '.npy'):
-        print('Generating Augmented Samples')
-        augmenting(args, dataset, tokenizer, aug_src_loc)
-
-    aug_src = np.load(aug_src_loc + '.npy')
-
-    return torch.LongTensor(aug_src)
-
-def load_selected_aug(args, dataset):
-    select_aug_data = np.load(args.selected + '_data.npy')
-    select_aug_data = torch.LongTensor(select_aug_data)
-
-    select_aug_label = np.load(args.selected + '_label.npy')
-    select_aug_label = torch.LongTensor(select_aug_label).unsqueeze(1)
-
-    select_aug_index = torch.arange(len(select_aug_data)) + len(dataset.train_dataset)
-    select_dataset = TensorDataset(select_aug_data, select_aug_label, select_aug_index)
-    concat_dataset = ConcatDataset([dataset.train_dataset, select_dataset])
-
-    return DataLoader(concat_dataset, shuffle=True, drop_last=True, batch_size=args.batch_size, num_workers=4)
 
 def add_mislabel_dataset(args, datas, class_idx, infer=False):
     num_noisy_label = int(len(datas) * args.noisy_label_ratio)
