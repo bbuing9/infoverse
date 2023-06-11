@@ -14,10 +14,7 @@ by [Jaehyung Kim](https://sites.google.com/view/jaehyungkim), [Yekyung Kim](http
 * `tqdm`
 * `scikit-learn`
 
-## Scripts
-Please check out `run.sh` for all the scripts to reproduce the results.
-
-### Overall Procedure of infoVerse 
+## Construction of InfoVerse
 1. Train the classifiers used for for gathering meta-informations 
 ```
 python train.py --train_type 0000_base --save_ckpt --epochs 7 --dataset sst2 --seed 1234 --backbone roberta_large
@@ -25,5 +22,16 @@ python train.py --train_type 0000_base --save_ckpt --epochs 7 --dataset sst2 --s
 2. Construction of infoVerse 
 ```
 python construct_infoverse.py --train_type 0000_base --epochs 7 --dataset sst2 --seed 1234 --backbone roberta_large
-
 ```
+## Real-world Application #1: Data Pruning
+
+Please check out `run.sh` for all the scripts to reproduce the results.
+
+## Real-world Application #2: Active Learning
+
+Please check out `run.sh` for all the scripts to reproduce the results.
+
+## Real-world Application #3: Data Annotation
+
+Please check out `run.sh` for all the scripts to reproduce the results.
+
