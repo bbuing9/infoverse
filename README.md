@@ -4,6 +4,10 @@ This repository contains code for the paper
 **"infoVerse: Dataset Characterization with Multi-dimensional Meta-information"** 
 by [Jaehyung Kim](https://sites.google.com/view/jaehyungkim), [Yekyung Kim](https://www.linkedin.com/in/yekyung-kim-b9413a91/), [Karin de Langis](https://karinjd.github.io/), [Jinwoo Shin](http://alinlab.kaist.ac.kr/shin.html) and [Dongyeop Kang](https://dykang.github.io/). 
 
+<p align="center" >
+    <img src=acl23_main_figure.jpg width="20%">
+</p>
+
 ## Dependencies
 
 * `python3`
