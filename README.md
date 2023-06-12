@@ -4,6 +4,10 @@ This repository contains code for the paper
 **"infoVerse: Dataset Characterization with Multi-dimensional Meta-information"** 
 by [Jaehyung Kim](https://sites.google.com/view/jaehyungkim), [Yekyung Kim](https://www.linkedin.com/in/yekyung-kim-b9413a91/), [Karin de Langis](https://karinjd.github.io/), [Jinwoo Shin](http://alinlab.kaist.ac.kr/shin.html) and [Dongyeop Kang](https://dykang.github.io/). 
 
+<p align="center" >
+    <img src=acl23_main_figure.jpg width="20%">
+</p>
+
 ## Dependencies
 
 * `python3`
@@ -27,16 +31,16 @@ python construct_infoverse.py --train_type 0000_base --seed_list "1234 2345 3456
 ```
 ## Real-world Application #1: Data Pruning
 
-**Remark**. Before conducting pruning, one needs to construct infoVerse following the above procedues. 
+**Remark**. First, one needs to construct infoVerse following the above procedures. 
 
-After constructing infoVerse, one can conduct data pruning by controlling `data_ratio` (0.0 to 1.0). Please check out `./data_annotation/run_pruning.sh`. 
+After that, one can conduct data pruning by controlling `data_ratio` (0.0 to 1.0). Please check out `./data_annotation/run_pruning.sh`. 
 ```
 python ./data_pruning/train_pruning.py --train_type xxxx_infoverse_dpp --save_ckpt --data_ratio 0.xx --batch_size 16 --epochs 10 --dataset sst2 --seed 1234 --backbone roberta_large
 ```
 
 ## Real-world Application #2: Active Learning
 
-Please check out `run.sh` for all the scripts to reproduce the results.
+Please see the repository `./active_learning`.
 
 ## Real-world Application #3: Data Annotation
 
