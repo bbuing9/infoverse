@@ -6,21 +6,13 @@ import torch
 import torch.nn as nn
 
 from torch.utils.data import DataLoader
-from src_infoverse.data.base_dataset import NewsDataset, ReviewDataset, GLUEDataset, IMDBDataset, TRECDataset, WinoDataset
+from src_infoverse.data.base_dataset import GLUEDataset, WinoDataset
 
 def get_base_dataset(data_name, data_dir, tokenizer, batch_size=16, data_ratio=1.0, seed=0, shuffle=True):
     print('Initializing base dataset... (name: {})'.format(data_name))
 
     # Text Classifications
-    if data_name == 'news':
-        dataset = NewsDataset(tokenizer, data_dir,  data_ratio, seed)
-    elif data_name == 'review':
-        dataset = ReviewDataset(tokenizer, data_dir, data_ratio, seed)
-    elif data_name == 'trec':
-        dataset = TRECDataset(tokenizer, data_dir,  data_ratio, seed)
-    elif data_name == 'imdb':
-        dataset = IMDBDataset(tokenizer, data_dir, data_ratio, seed)
-    elif data_name == 'wino':
+    if data_name == 'wino':
         dataset = WinoDataset(tokenizer, data_dir, data_ratio, seed)
     else:
         if data_name == 'stsb':

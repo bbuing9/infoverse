@@ -36,7 +36,7 @@ def aggregate(args, features, features_t, alps, alps_t, ens_features_epochs, ens
     all_measurements.append(forget_number.unsqueeze(0))
     all_measurements.append(aum.unsqueeze(0))
 
-    name.append('avg_conf')
+    name.append('avg_conf') 
     name.append('variab')
     name.append('forget_number')
     name.append('aum')
@@ -87,7 +87,6 @@ def aggregate(args, features, features_t, alps, alps_t, ens_features_epochs, ens
     conf = -1 * confidence(features)
     ent = entropy(features)
     badge_embed = badge_grads(features)
-    #badge_embed_t = badge_grads(features_t)
     badge_norm = badge_embed.norm(dim=-1)
 
     args.density_measure = 'nn_relative_dist'
@@ -102,23 +101,20 @@ def aggregate(args, features, features_t, alps, alps_t, ens_features_epochs, ens
     all_measurements.append(conf.unsqueeze(0))
     all_measurements.append(ent.unsqueeze(0))
     all_measurements.append(badge_norm.unsqueeze(0))
-    #all_measurements.append(torch.Tensor(badge_density).unsqueeze(0))
 
-    name.append('knn_density')  # 16
-    name.append('knn_density_rel')  # 17
-    name.append('conf')  # 18
-    name.append('ent')  # 19
-    name.append('badge_norm')  # 20
-    #name.append('badge_density')
+    name.append('knn_density')  
+    name.append('knn_density_rel')
+    name.append('conf') 
+    name.append('ent')  
+    name.append('badge_norm')  
 
     # Language
     surprisals, likelihood, _ = alps
-    #surprisals_t, _, _ = alps_t
 
     sent_density = torch.Tensor(knn_density_s_np).unsqueeze(0)
     likelihoods = -1 * likelihood.unsqueeze(0)
 
-    all_measurements.append(sent_density)  # 21
+    all_measurements.append(sent_density)  
     all_measurements.append(likelihoods)
 
     name.append('sent_density')
@@ -139,16 +135,11 @@ def get_infoverse(args, label_dataset, pool_dataset, n_epochs, seeds_list, n_cla
 
     model, tokenizer, _, _ = setup.load_model(args)
 
-    # model = Classifier(args.base_model, backbone, n_class).cuda()
-    # model.load_state_dict(torch.load(os.path.join(args.model_name_or_path, 'pytorch_model.bin')))
-
     features_l = get_features(args, model, label_loader)
     features_p = get_features(args, model, pool_loader)
 
     labels_l = features_l['labels'].numpy()  # True label
     labels_p = features_p['probs'].max(dim=1)[1].numpy()  # Pseudo label
-
-    print("here1")
 
     list_epochs = list(np.arange(n_epochs))
     list_seeds = [seeds_list[0]]
@@ -160,11 +151,7 @@ def get_infoverse(args, label_dataset, pool_dataset, n_epochs, seeds_list, n_cla
 
     # Caution. Re-initialization is necessary
     model, _, _, _ = setup.load_model(args)
-    # model = Classifier(args.backbone, backbone, n_class, args.train_type).cuda()
-    # model.load_state_dict(torch.load(args.pre_ckpt))
     mc_ens_features = mc_dropout_models(args, model, pool_loader, n_ensemble=len(seeds_list))
-
-    print("here2")
 
     # Label converting
     features_p['labels'] = features_p['logits'].max(dim=1)[1]
@@ -178,9 +165,6 @@ def get_infoverse(args, label_dataset, pool_dataset, n_epochs, seeds_list, n_cla
     else:
         alps_p = surprisal_embed(args, backbone, pool_loader)
         alps_l = surprisal_embed(args, backbone, label_loader)
-
-    print("mask mlm acc: {}".format(alps_l[2]))
-    print("here3")
 
     backbone, tokenizer = load_backbone('sentence_bert')
     backbone.to(args.device)
@@ -211,6 +195,7 @@ def dpp_sampling(n_query, measurements, labels, scores='density', reduce=False):
     # Define similarity kernel phi(x_1, x_2)
     similarity = gaussian_kernel(info_measures / np.linalg.norm(info_measures, axis=-1).reshape(-1, 1))
 
+    # To address the case when the same class samples are less than 5
     temp = np.zeros(2)
     for i in range(2):
         temp[i] = (np.array(labels) == i).sum()
@@ -225,10 +210,6 @@ def dpp_sampling(n_query, measurements, labels, scores='density', reduce=False):
     elif scores == 'inv':
         scores = compute_nearest_neighbour_distances_cls(info_measures, labels, info_measures, labels,
                                                                   nearest_k=nearest)
-    elif scores == 'hard':
-        scores = np.sqrt(-1 * np.log(measurements_orig[:, 0] + 1e-8))
-    elif scores == 'ambig':
-        scores = np.sqrt(measurements_orig[:, 1])
     else:
         scores = np.ones(n_sample)
     scores = (scores - scores.min()) / scores.max()
@@ -256,7 +237,8 @@ def main():
 
     if args.task_name not in processors:
         raise ValueError("Task not found: %s" % (args.task_name))
-    # first, get already sampled points
+    
+    # First, get already sampled points
     sampled_file = os.path.join(args.model_name_or_path, 'sampled.pt')
     if os.path.isfile(sampled_file):
         sampled = torch.load(sampled_file)
@@ -269,9 +251,6 @@ def main():
     args.head = sample.sampling_to_head(args.sampling, args.task_name)
 
     backbone, tokenizer = load_backbone(args.base_model)
-    # dataset, _, _, _ = get_base_dataset(args.task_name, args.data_dir, tokenizer,
-    #                                                                   batch_size = args.per_gpu_eval_batch_size,
-    #                                                                   data_ratio=1.0, seed = args.seed, shuffle=False)
     train_dataset = load_and_cache_examples(args, args.task_name, tokenizer, evaluate=False)
     label_dataset = Subset(train_dataset, np.array(sampled))
     pool_idx = list(set(np.arange(len(train_dataset))) - set(np.array(sampled)))

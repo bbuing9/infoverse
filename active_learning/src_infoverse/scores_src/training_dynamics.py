@@ -1,5 +1,3 @@
-##
-
 import torch
 
 def avg_conf_variab(ens_sources, n_epochs=-1):

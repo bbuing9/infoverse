@@ -9,31 +9,11 @@ def load_backbone(name, output_attentions=False):
         backbone = BertForMaskedLM.from_pretrained('bert-base-uncased', output_attentions=output_attentions)
         tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
         tokenizer.name = 'bert-base-uncased'
-    elif name == 'roberta':
-        from transformers import RobertaForMaskedLM, RobertaTokenizer
-        backbone = RobertaForMaskedLM.from_pretrained('roberta-base', output_attentions=output_attentions)
-        tokenizer = RobertaTokenizer.from_pretrained('roberta-base')
-        tokenizer.name = 'roberta-base'
     elif name == 'roberta_large':
         from transformers import RobertaForMaskedLM, RobertaTokenizer
         backbone = RobertaForMaskedLM.from_pretrained('roberta-large', output_attentions=output_attentions)
         tokenizer = RobertaTokenizer.from_pretrained('roberta-large')
         tokenizer.name = 'roberta-large'
-    elif name == 'roberta_mc':
-        from transformers import RobertaForMultipleChoice, RobertaTokenizer
-        backbone = RobertaForMultipleChoice.from_pretrained('roberta-base', output_attentions=output_attentions)
-        tokenizer = RobertaTokenizer.from_pretrained('roberta-base')
-        tokenizer.name = 'roberta-base'
-    elif name == 'roberta_mc_large':
-        from transformers import RobertaForMultipleChoice, RobertaTokenizer
-        backbone = RobertaForMultipleChoice.from_pretrained('roberta-large', output_attentions=output_attentions)
-        tokenizer = RobertaTokenizer.from_pretrained('roberta-large')
-        tokenizer.name = 'roberta-large'    
-    elif name == 'albert':
-        from transformers import AlbertModel, AlbertTokenizer
-        backbone = AlbertModel.from_pretrained('albert-base-v2', output_attentions=output_attentions)
-        tokenizer = AlbertTokenizer.from_pretrained('albert-base-v2')
-        tokenizer.name = 'albert-base-v2'
     elif name == 'sentence_bert':
         from transformers import AutoTokenizer, AutoModel
         backbone = AutoModel.from_pretrained("sentence-transformers/paraphrase-MiniLM-L6-v2")
@@ -87,71 +67,3 @@ class Classifier(nn.Module):
             return out_cls, out_cls_orig
         else:
             return out_cls
-
-class LinearRegression(torch.nn.Module):
-    def __init__(self, inputSize, outputSize):
-        super(LinearRegression, self).__init__()
-        self.linear = torch.nn.Linear(inputSize, outputSize)
-
-    def forward(self, x):
-        out = self.linear(x)
-        return out
-
-class Value_estimator(nn.Module):
-    # Design choice #1: Deciding what to use as inputs (e.g., BERT final-layer?) -> penultimate of [CLS] token
-    # Design choice #2: How to combine the label information? -> naive concatenation
-
-    def __init__(self, args, n_class):
-        super(Value_estimator, self).__init__()
-
-        self.n_dim = 768
-        self.n_class = n_class
-
-        if args.measurement:
-            self.layer1 = nn.Linear(23 + self.n_class, self.n_dim + self.n_class)
-        elif args.logit or args.logit2:
-            self.layer1 = nn.Linear(self.n_class + self.n_class, self.n_dim + self.n_class)
-        else:
-            self.layer1 = nn.Linear(self.n_dim + self.n_class, self.n_dim + self.n_class)
-        self.layer2 = nn.Linear(self.n_dim + self.n_class, self.n_dim + self.n_class)
-
-        if args.measurement2:
-            self.hidden_dim2 = self.n_dim + self.n_class + 23
-        else:
-            self.hidden_dim2 = self.n_dim + self.n_class + self.n_class
-
-        self.layer3 = nn.Linear(self.hidden_dim2, self.hidden_dim2)
-        self.layer4 = nn.Linear(self.hidden_dim2, self.hidden_dim2)
-        self.layer5 = nn.Linear(self.hidden_dim2, 1)
-
-    def forward(self, x, y_diff):
-        x = F.relu(self.layer1(x))
-        x = F.relu(self.layer2(x))
-
-        x_comb = torch.cat([x, y_diff], dim=-1)
-        x_comb = F.relu(self.layer3(x_comb))
-        x_comb = F.relu(self.layer4(x_comb))
-        x_fin = torch.sigmoid(self.layer5(x_comb))
-
-        return x_fin
-
-class Value_estimator_linear(nn.Module):
-    # Design choice #1: Deciding what to use as inputs (e.g., BERT final-layer?) -> penultimate of [CLS] token
-    # Design choice #2: How to combine the label information? -> naive concatenation
-
-    def __init__(self, args, n_class):
-        super(Value_estimator_linear, self).__init__()
-
-        self.n_dim = 768
-        self.n_class = n_class
-
-        if args.measurement:
-            self.layer1 = nn.Linear(23 + self.n_class, 1)
-        elif args.logit or args.logit2:
-            self.layer1 = nn.Linear(self.n_class + self.n_class, 1)
-        else:
-            self.layer1 = nn.Linear(self.n_dim + self.n_class, 1)
-
-    def forward(self, x, y_diff):
-        return torch.sigmoid(self.layer1(x))
-

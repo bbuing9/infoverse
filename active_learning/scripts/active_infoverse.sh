@@ -2,25 +2,99 @@ set -e
 
 ### change these variables if needed
 DATA_DIR=data
-TASK_NAME=cola
+TASK_NAME=rte
 MODEL_TYPE=bert
-MODEL_NAME=/nlp/users/yekyung.kim/git/LINDA/LINDA/pretrained_models/bert-base-uncased #bert-base-uncased
-SEED=123 # sampling seed
-ENS_SEED='1 2 3' # This seed is only used for training multiple models for ensemble.
-COLDSTART=rand
-SAMPLING=infoverse
-DPP_SAMPLING=density # hard, ambig
+MODEL_NAME=bert-base-uncased
+SEED=134
+COLDSTART=none
 INCREMENT=500
-MAX_SIZE=5000
-### end
 
-if [ ${TASK_NAME} == 'cola' ]
+INIT_SAMPLING=rand
+INIT_SIZE=501
+
+SAMPLING=infoverse
+DPP_SAMPLING=inv
+
+ENS_SEED='1 2 3'
+
+if [ ${TASK_NAME} == 'rte' ]
 then
   EPOCH=10
+  INCREMENT=100
+  MAX_SIZE=1001
 else
   EPOCH=5
+  INCREMENT=500
+  MAX_SIZE=5001
 fi
 
+METHOD=${COLDSTART}-${INIT_SAMPLING}
+MODEL_DIR=models/${SEED}/${TASK_NAME}
+if [ "$COLDSTART" == "none" ]
+then
+    MODEL0=$MODEL_NAME
+    START=0
+    METHOD=${INIT_SAMPLING}
+else
+    MODEL0=${MODEL_DIR}/${COLDSTART}_${INCREMENT}
+    START=$INCREMENT
+fi
+
+active (){
+# 1=number of samples
+# 2=model path
+# 3=sampling method
+echo -e "\n\nACQUIRING $1 SAMPLES\n\n"
+python -m src.active \
+    --model_type $MODEL_TYPE \
+    --model_name_or_path $2 \
+    --task_name $TASK_NAME \
+    --data_dir $DATA_DIR/$TASK_NAME \
+    --output_dir ${MODEL_DIR}/${3}_${1} \
+    --seed $SEED \
+    --query_size $INCREMENT \
+    --sampling $INIT_SAMPLING \
+    --base_model $MODEL_NAME \
+    --per_gpu_eval_batch_size 32 \
+    --max_seq_length 128
+}
+
+train (){
+# 1 = number of samples
+# 2 = output directory
+echo -e "\n\nTRAINING WITH $1 SAMPLES\n\n"
+python -m src.train \
+    --model_type $MODEL_TYPE \
+    --model_name_or_path $MODEL_NAME \
+    --task_name $TASK_NAME \
+    --do_train \
+    --do_test \
+    --data_dir $DATA_DIR/$TASK_NAME \
+    --max_seq_length 128 \
+    --learning_rate 2e-5 \
+    --num_train_epochs ${EPOCH} \
+    --output_dir $2 \
+    --seed $SEED \
+    --base_model $MODEL_NAME \
+    --per_gpu_eval_batch_size 32 \
+    --per_gpu_train_batch_size 32 
+}
+
+f=$MODEL0
+p=$(( $START + $INCREMENT ))
+while [ $p -le $INIT_SIZE ]
+do
+    active $p $f $METHOD
+    f=${MODEL_DIR}/${METHOD}_$p
+    train $p $f
+    rm ${f}/pytorch_model.bin
+    rm ${f}/vocab.txt
+    p=$(( $p + $INCREMENT ))
+done
+
+set -e
+
+COLDSTART=rand
 
 METHOD=${COLDSTART}-${SAMPLING}_${DPP_SAMPLING}
 MODEL_DIR=models/${SEED}/${TASK_NAME}

@@ -25,7 +25,6 @@ def label_distance(labels):
 
     return 1 - 0.5 * l2_distance(onehot, onehot)  # 0: same, 1: different classes
 
-
 ### from https://github.com/laming-chen/fast-map-dpp/blob/master/dpp_test.py
 def dpp_greedy(kernel_matrix, max_length, epsilon=1E-11):
     """
