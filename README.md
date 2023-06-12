@@ -14,18 +14,25 @@ by [Jaehyung Kim](https://sites.google.com/view/jaehyungkim), [Yekyung Kim](http
 * `tqdm`
 * `scikit-learn`
 
-## Construction of InfoVerse
-1. Train the classifiers used for for gathering meta-informations 
+## Construction of infoVerse
+Please check out `run.sh`.
+
+1. Train the classifiers used for gathering meta-informations 
 ```
-python train.py --train_type 0000_base --save_ckpt --epochs 7 --dataset sst2 --seed 1234 --backbone roberta_large
+python train.py --train_type 0000_base --save_ckpt --epochs 10 --dataset sst2 --seed 1234 --backbone roberta_large
 ```
 2. Construction of infoVerse 
 ```
-python construct_infoverse.py --train_type 0000_base --epochs 7 --dataset sst2 --seed 1234 --backbone roberta_large
+python construct_infoverse.py --train_type 0000_base --seed_list "1234 2345 3456" --epochs 10 --dataset sst2 --seed 1234 --backbone roberta_large
 ```
 ## Real-world Application #1: Data Pruning
 
-Please check out `run.sh` for all the scripts to reproduce the results.
+**Remark**. Before conducting pruning, one needs to construct infoVerse following the above procedues. 
+
+After constructing infoVerse, one can conduct data pruning by controlling `data_ratio` (0.0 to 1.0). Please check out `./data_annotation/run_pruning.sh`. 
+```
+python ./data_pruning/train_pruning.py --train_type xxxx_infoverse_dpp --save_ckpt --data_ratio 0.xx --batch_size 16 --epochs 10 --dataset sst2 --seed 1234 --backbone roberta_large
+```
 
 ## Real-world Application #2: Active Learning
 
@@ -33,5 +40,12 @@ Please check out `run.sh` for all the scripts to reproduce the results.
 
 ## Real-world Application #3: Data Annotation
 
-Please check out `run.sh` for all the scripts to reproduce the results.
+Please check out `./data_annotation/run_anno.sh` to reproduce the results.
 
+1. [ ] Conducting annotation
+
+
+2. Train the classifier with annotated samples  
+```
+python ./data_annotation/train_anno.py --annotation infoverse --save_ckpt --model_lr 1e-5 --train_type xxxx --batch_size 16 --epochs 10 --dataset imp --seed 1234 --backbone roberta_large
+```
