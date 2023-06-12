@@ -1,15 +1,26 @@
 # InfoVerse_AL (based on ALPS')
-Code repository for EMNLP 2020 proceedings paper [Cold-start Active Learning through Self-supervised Language Modeling](https://arxiv.org/abs/2010.09535).  The main contribution of the paper is an active learning algorithm called ALPS (Active Learning through Processing Surprisal) that is based on the language modeling objective.  
 
-# Installation
-1. Create virtual environment with Python 3.7+
-2. Run following commands:
+This code is based on the repository for EMNLP 2020 proceedings paper [Cold-start Active Learning through Self-supervised Language Modeling](https://arxiv.org/abs/2010.09535). The main contribution of the paper is an active learning algorithm called ALPS (Active Learning through Processing Surprisal) that is based on the language modeling objective.  
+
+# Preliminary for infoVerse
+
+Download the raw data files from [google drive](https://drive.google.com/file/d/1qfqScZlxS8CaEt1CAb3qzzQ4QIyIZxY3/view?usp=drive_link) and unzip to this folder. It will generate `./data` folder.
+
+# Training with infoVerse 
+
+Please check out `./scripts/active_infoverse.sh` to conduct active learning with infoVerse. Similarly, one can train AL baselines with `./scripts/active_baselines.sh`.
+
 ```
-git clone https://github.com/forest-snow/alps.git
-cd alps
+bash ./scripts/active_infoverse.sh
+```
+**Note**. Below instructions are from the referred repository. 
+
+## Installation
+1. Run following commands:
+```
 pip install -r requirements.txt
 ```
-# Organization
+## Organization
 The repository is organized as the following subfolders:
 
 1. `src`: source code
@@ -18,10 +29,10 @@ The repository is organized as the following subfolders:
 4. `models`: saved models from running experiments
 5. `analysis`: analysis of active learning experiments
 
-# Usage
+## Usage
 All commands below should be ran in the top-level directory `alps`.
 
-## Fine-tune model on full training dataset
+### Fine-tune model on full training dataset
 To simply fine-tune a model on the full training dataset, run 
 
 `bash scripts/train.sh`  
@@ -30,7 +41,7 @@ After fine-tuning, this model will be saved under a subdirectory called `base` i
 
 You may modify the parameters (like model type, task, seed, etc.) in `scripts/train.sh`by configuring the variables at the top of the script.  
 
-## Run active learning simulations
+### Run active learning simulations
 To simulate active learning, run 
 
 `bash scripts/active_train.sh` 
@@ -48,7 +59,7 @@ Here are the naming conventions of the strategies from the paper:
 4. BADGE: `badge`
 5. BERT-KM: `bertKM`
 6. FT-BERT-KM: `FTbertKM`
-7. [YK] BALD: 'bald'
+7. BALD: `bald`
 
 So, whenever you want to use ALPS, you would pass in `alps` as input to the commands presented below.
 
@@ -63,21 +74,21 @@ For active learning strategies that DO require a model already fine-tuned on dow
 ### Sample size
 To set the size of data sampled on each iteration, configure the variable `INCREMENT`.  To set the maximum size of total data sampled, configure the variable `MAX_SIZE`.  The number of iterations would be `MAX_SIZE\INCREMENT`.
 
-## Test fine-tuned models
+### Test fine-tuned models
 To test models that have been fine-tuned, run
 
 `python -m src.test --models models`
 
 This will iterate through every model located in subdirectories of folder `models` and evaluate them on the test dataset.  However, it will skip over any models that are just checkpoints or were not evaluated on a dev set (models trained with scripts will automatically be tested on dev set).  The script will output results in `test_results.txt`
 
-## Analyze active learning sampled batches
+### Analyze active learning sampled batches
 To analyze the uncertainty and diversity of batched sampled with active learning, run 
 
 `bash scripts/analyze.sh`
 
 This will output a CSV file in `analysis` folder containing uncertainty and diversity scores for each sampled batch.  The header of the CSV file will be`sampling,iteration,task,diversity,uncertainty`.  Each row indicates the diversity and uncertainty scores for data sampled with strategy at a certain iteration for a task.
 
-# Citation
+## Citation
 ```
 @inproceedings{yuan2020alps,
   title={Cold-start Active Learning through Self-supervised Language Modeling},
