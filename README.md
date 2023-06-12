@@ -8,6 +8,14 @@ by [Jaehyung Kim](https://sites.google.com/view/jaehyungkim), [Yekyung Kim](http
     <img src=assets/acl23_main_figure.jpg width="20%">
 </p>
 
+
+## ToDo Lists
+
+* [ ] Requirements
+* [ ] Constructed infoVerse and visualization
+* [ ] Active learning code re-verification
+* [ ] Annotation notebook file
+
 ## Dependencies
 
 * `python3`
