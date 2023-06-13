@@ -11,13 +11,11 @@ from torch.utils.data import DataLoader, ConcatDataset, TensorDataset
 from transformers import AdamW, get_linear_schedule_with_warmup, get_constant_schedule_with_warmup
 from tqdm import tqdm
 
-from eval import test_acc
-from data import get_base_dataset
-from models import load_backbone, Classifier
-from common import CKPT_PATH, parse_args
-from utils import Logger, set_seed, set_model_path, save_model, add_mislabel_dataset, pruning_dataset, cut_input, AverageMeter
-
-from scores_src.dpp import dpp_sampling
+from src.eval import test_acc
+from src.data import get_base_dataset
+from src.models import load_backbone, Classifier
+from src.common import CKPT_PATH, parse_args
+from src.utils import Logger, set_seed, set_model_path, save_model, add_mislabel_dataset, pruning_dataset, cut_input, AverageMeter
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -29,8 +27,6 @@ def main():
 
     ##### Set logs
     # Data pruning
-    if args.data_ratio < 1.0 and args.selected is not None:
-        args.train_type = args.train_type + "_" + args.selected
     log_name = f"{args.dataset}_R{args.data_ratio}_{args.backbone}_{args.train_type}_S{args.seed}"
 
     logger = Logger(log_name)
@@ -43,9 +39,7 @@ def main():
 
     logger.log('Initializing dataset...')
     dataset, train_loader, val_loader, test_loader = get_base_dataset(args.dataset, tokenizer, args.batch_size, args.seed)
-    if args.data_ratio < 1.0:
-        train_loader = set_new_loader(args, logger, dataset)        
-
+    
     logger.log('Initializing model and optimizer...')
     if args.dataset == 'wino':
         dataset.n_classes = 1
@@ -83,10 +77,7 @@ def train_base(args, loader, model, optimizer, scheduler, epoch=0, logger=None):
     losses['cls'] = AverageMeter()
     losses['cls_acc'] = AverageMeter()
 
-    if args.dataset == 'stsb':
-        criterion = nn.MSELoss(reduction='none')
-    else:
-        criterion = nn.CrossEntropyLoss(reduction='none')
+    criterion = nn.CrossEntropyLoss(reduction='none')
     
     steps = epoch * len(loader)
     for i, (tokens, labels, _) in enumerate(tqdm(loader)):
@@ -154,61 +145,6 @@ def eval_func(args, model, val_loader, test_loader, logger, best_acc, final_acc)
         logger.log('Test acc: {:.3f}'.format(final_acc))
 
     return best_acc, final_acc
-
-def set_new_loader(args, logger, dataset):
-    # Adding syntactic noise label to train dataset
-    if args.noisy_label_criteria is not None or args.noisy_label_path is not None:
-        train_loader = add_mislabel_dataset(args, dataset.train_dataset, dataset.class_idx)
-    else:
-        n_sub = int(args.data_ratio * len(dataset.train_dataset))
-        data, labels, idxs = dataset.train_dataset[:][0], dataset.train_dataset[:][1], dataset.train_dataset[:][2]
-        measures = np.load("./outputs/{}_{}_infoverse.npy".format(args.dataset, args.backbone))
-
-        if args.dpp:
-            selected_idx = "./outputs/{}_{}_dpp_indices.npy".format(args.dataset, args.backbone)
-            if os.path.exists(selected_idx):
-                logger.log('=====> Loading the existing dpp indices...')
-                indices = np.load(selected_idx)
-            else:
-                logger.log('=====> New generation of dpp indices...')
-                indices = dpp_sampling(len(measures), measures, np.array(labels[:, 0]), scores='density')
-                indices = np.array(indices)
-                np.save(selected_idx, indices)
-
-            if len(indices.shape) == 2:
-                maps = {'0.83': 0, '0.66': 1, '0.5': 2, '0.33': 3, '0.25': 4, '0.17': 5, '0.13': 6, '0.09': 7, '0.05': 8}
-                sel_idx = indices[maps[str(args.data_ratio)]][:n_sub]
-            else:
-                sel_idx = indices[:n_sub]
-            
-        elif args.selected == 'easy':
-            scores = measures[:, 0]
-            sel_idx = np.argsort(scores)[::-1][:n_sub]
-            sel_idx = np.array(sel_idx)
-        elif args.selected == 'hard':
-            scores = measures[:, 0]
-            sel_idx = np.argsort(scores)[:n_sub]
-            sel_idx = np.array(sel_idx)
-        elif args.selected == 'ambig':
-            scores = measures[:, 1]
-            sel_idx = np.argsort(scores)[::-1][:n_sub]
-            sel_idx = np.array(sel_idx)
-        elif args.selected == 'ent':
-            scores = measures[:, 5]
-            sel_idx = np.argsort(scores)[::-1][:n_sub]
-            sel_idx = np.array(sel_idx)
-        elif args.selected == 'dens':
-            scores = measures[:, 21]
-            sel_idx = np.argsort(scores)[::-1][:n_sub]
-            sel_idx = np.array(sel_idx)
-        else:
-            sorted_idx = torch.randperm(len(data))
-            sel_idx = sorted_idx[:n_sub]
-
-        sub_dataset = TensorDataset(data[sel_idx, :], labels[sel_idx, :], idxs[sel_idx])
-        train_loader = DataLoader(sub_dataset, shuffle=True, drop_last=True, batch_size=args.batch_size, num_workers=4)
-    
-    return train_loader
 
 if __name__ == "__main__":
     main()

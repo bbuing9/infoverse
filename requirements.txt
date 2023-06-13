@@ -1,4 +1,4 @@
-pytorch==1.6.0
+torch==1.6.0
 transformers==4.0.1
 datasets==1.6.2
 tqdm==4.49.0
