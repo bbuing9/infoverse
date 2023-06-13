@@ -41,12 +41,7 @@ visualize.ipynb
 
 ## Real-world Application #1: Data Pruning
 
-After generating infoVerse, one can conduct data pruning as below. Please check the details in the corresponding repository `./data_pruning`.
-
-```
-ln -s transformers ./data_pruning/transformers
-python ./data_pruning/train_pruning.py --train_type xxxx_infoverse_dpp --save_ckpt --data_ratio 0.xx --batch_size 16 --epochs 10 --dataset sst2 --seed 1234 --backbone roberta_large
-```
+Please see the repository `./data_pruning`.
 
 ## Real-world Application #2: Active Learning
 
