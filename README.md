@@ -19,9 +19,9 @@ by [Jaehyung Kim](https://sites.google.com/view/jaehyungkim), [Yekyung Kim](http
 
 ## Dependencies
 
-* `python3`
-* `pytorch >= 1.6.0`
-* `transformers >= 4.0.0`
+* `python3.7`
+* `pytorch==1.6.0`
+* `transformers==4.0.1`
 * `datasets`
 * `torchvision`
 * `tqdm`
