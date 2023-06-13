@@ -28,7 +28,7 @@ by [Jaehyung Kim](https://sites.google.com/view/jaehyungkim), [Yekyung Kim](http
 * `scikit-learn`
 
 ## Construction of infoVerse
-Please check out `run.sh`.
+To construct infoVerse, one first needs to 1) train the vanilla classifiers. Then, using the trained classifiers, one can construct infoVerse by extracting the pre-defined meta-information (defined in `./src/scores_src`). Please check out `run.sh`.
 
 1. Train the classifiers used for gathering meta-informations 
 ```
@@ -38,6 +38,13 @@ python train.py --train_type 0000_base --save_ckpt --epochs 10 --dataset sst2 --
 ```
 python construct_infoverse.py --train_type 0000_base --seed_list "1234 2345 3456" --epochs 10 --dataset sst2 --seed 1234 --backbone roberta_large
 ```
+
+One can visualize the constructed infoVerse and use it to analyize the given dataset using `visualize.ipynb`.
+
+```
+python construct_infoverse.py --train_type 0000_base --seed_list "1234 2345 3456" --epochs 10 --dataset sst2 --seed 1234 --backbone roberta_large
+```
+
 ## Real-world Application #1: Data Pruning
 
 Please see the repository `./data_pruning`.
