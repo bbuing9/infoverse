@@ -15,7 +15,7 @@ from src.eval import test_acc
 from src.data import get_base_dataset
 from src.models import load_backbone, Classifier
 from src.common import CKPT_PATH, parse_args
-from src.utils import Logger, set_seed, set_model_path, save_model, add_mislabel_dataset, pruning_dataset, cut_input, AverageMeter
+from src.utils import Logger, set_seed, set_model_path, save_model, cut_input, AverageMeter
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 

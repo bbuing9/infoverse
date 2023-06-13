@@ -8,3 +8,5 @@ MulticoreTSNE==0.1
 pandas==1.2.4
 sentencepiece==0.1.95
 torchvision==0.7.0
+easydict==1.9
+matplotlib==3.5.1
