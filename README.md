@@ -12,7 +12,8 @@ by [Jaehyung Kim](https://sites.google.com/view/jaehyungkim), [Yekyung Kim](http
 ## ToDo Lists
 
 * [ ] Requirements
-* [ ] Constructed infoVerse and visualization
+* [ ] Constructed infoVerse and visualization (notebook file)
+* [ ] Data annotation
 * [x] Active learning code re-verification
 * [x] Annotation notebook file
 
