@@ -1,6 +1,7 @@
 import os
 import easydict
 import json
+import time
 
 import torch
 import torch.nn as nn
@@ -12,16 +13,12 @@ import scipy
 from matplotlib import pyplot as plt
 
 from torch.utils.data import DataLoader, TensorDataset
-from models import load_backbone, Classifier
 
-from data import get_base_dataset
-from utils import Logger, set_seed, set_model_path, save_model, add_mislabel_dataset, cut_input
-from training.common import get_embed
-from common import CKPT_PATH, parse_args
-
-from scores_src.info import get_infoverse
-
-import time
+from src.models import load_backbone, Classifier
+from src.data import get_base_dataset
+from src.utils import Logger, set_seed, set_model_path, save_model, cut_input
+from src.common import CKPT_PATH, parse_args
+from src.scores_src.info import get_infoverse
 
 def main():
     args = parse_args(mode='train')
