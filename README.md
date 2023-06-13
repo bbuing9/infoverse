@@ -8,24 +8,12 @@ by [Jaehyung Kim](https://sites.google.com/view/jaehyungkim), [Yekyung Kim](http
     <img src=assets/acl23_main_figure.jpg width="20%">
 </p>
 
-
-## ToDo Lists
-
-* [ ] Requirements
-* [x] Constructed infoVerse and visualization (notebook file)
-* [x] Data annotation
-* [x] Active learning code re-verification
-* [x] Annotation notebook file
-
-## Dependencies
-
-* `python3.7`
-* `pytorch==1.6.0`
-* `transformers==4.0.1`
-* `datasets`
-* `torchvision`
-* `tqdm`
-* `scikit-learn`
+## Installation
+The following command installs all necessary packages:
+```
+pip install -r requirements.txt
+```
+The project was tested using `Python 3.7`.
 
 ## Construction of infoVerse
 To construct infoVerse, one first needs to 1) train the vanilla classifiers. Then, using the trained classifiers, one can construct infoVerse by extracting the pre-defined meta-information (defined in `./src/scores_src`). We release the constructed infoVerse at [google drive](https://drive.google.com/file/d/1ARcXikAA7LMwWGEwEf2_rhbQIQyeblAk/view?usp=sharing). Please check out `run.sh`. 
