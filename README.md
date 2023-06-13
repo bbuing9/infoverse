@@ -40,12 +40,7 @@ python construct_infoverse.py --train_type 0000_base --seed_list "1234 2345 3456
 ```
 ## Real-world Application #1: Data Pruning
 
-**Remark**. First, one needs to construct infoVerse following the above procedures. 
-
-After that, one can conduct data pruning by controlling `data_ratio` (0.0 to 1.0). Please check out `./data_annotation/run_pruning.sh`. 
-```
-python ./data_pruning/train_pruning.py --train_type xxxx_infoverse_dpp --save_ckpt --data_ratio 0.xx --batch_size 16 --epochs 10 --dataset sst2 --seed 1234 --backbone roberta_large
-```
+Please see the repository `./data_pruning`.
 
 ## Real-world Application #2: Active Learning
 
