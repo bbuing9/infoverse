@@ -14,7 +14,7 @@ by [Jaehyung Kim](https://sites.google.com/view/jaehyungkim), [Yekyung Kim](http
 * [ ] Requirements
 * [ ] Constructed infoVerse and visualization
 * [x] Active learning code re-verification
-* [ ] Annotation notebook file
+* [x] Annotation notebook file
 
 ## Dependencies
 
@@ -52,12 +52,4 @@ Please see the repository `./active_learning`.
 
 ## Real-world Application #3: Data Annotation
 
-Please check out `./data_annotation/run_anno.sh` to reproduce the results.
-
-1. [ ] Conducting annotation
-
-
-2. Train the classifier with annotated samples  
-```
-python ./data_annotation/train_anno.py --annotation infoverse --save_ckpt --model_lr 1e-5 --train_type xxxx --batch_size 16 --epochs 10 --dataset imp --seed 1234 --backbone roberta_large
-```
+Please see the repository `./data_annotation`.
