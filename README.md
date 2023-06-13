@@ -13,7 +13,7 @@ by [Jaehyung Kim](https://sites.google.com/view/jaehyungkim), [Yekyung Kim](http
 
 * [ ] Requirements
 * [ ] Constructed infoVerse and visualization (notebook file)
-* [ ] Data annotation
+* [x] Data annotation
 * [x] Active learning code re-verification
 * [x] Annotation notebook file
 
