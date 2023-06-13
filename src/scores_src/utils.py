@@ -55,16 +55,13 @@ def merge_multiple_models(args, loader, backbone, list_epoch, list_seed):
     for i in range(n_epochs):
         for j in range(n_seeds):
             # Load ith model
-            pre_ckpt_i = f"./logs/{args.dataset}_R{args.data_ratio}_{args.backbone}_{args.train_type}_GA{args.grad_accumulation}_N{args.num_sub}_S{list_seed[j]}/"
+            pre_ckpt_i = f"./logs/{args.dataset}_R{args.data_ratio}_{args.backbone}_{args.train_type}_S{list_seed[j]}/"
             pre_ckpt_i += f"epoch{list_epoch[i]}.model"
 
             model_i = Classifier(args.backbone, backbone, args.n_class, args.train_type).cuda()
             ckpt_dict = torch.load(args.pre_ckpt)
-            #ckpt_dict['backbone.roberta.embeddings.position_ids'] = torch.arange(514).unsqueeze(0).cuda()
             model_i.load_state_dict(ckpt_dict)
-
-            #model_i.load_state_dict(torch.load(pre_ckpt_i))
-
+            
             # Extracting its features
             sources_i = get_features(args, model_i, loader)
             ens_sources.append(sources_i)
