@@ -12,7 +12,7 @@ by [Jaehyung Kim](https://sites.google.com/view/jaehyungkim), [Yekyung Kim](http
 ## ToDo Lists
 
 * [ ] Requirements
-* [ ] Constructed infoVerse and visualization (notebook file)
+* [x] Constructed infoVerse and visualization (notebook file)
 * [x] Data annotation
 * [x] Active learning code re-verification
 * [x] Annotation notebook file
@@ -39,10 +39,16 @@ python train.py --train_type 0000_base --save_ckpt --epochs 10 --dataset sst2 --
 python construct_infoverse.py --train_type 0000_base --seed_list "1234 2345 3456" --epochs 10 --dataset sst2 --seed 1234 --backbone roberta_large
 ```
 
-One can visualize the constructed infoVerse and use it to analyize the given dataset using `visualize.ipynb`.
+We release the constructed infoVerse at [google drive](https://drive.google.com/file/d/1ARcXikAA7LMwWGEwEf2_rhbQIQyeblAk/view?usp=sharing). 
+
+In addition, one can visualize the constructed infoVerse and use it to analyize the given dataset using `visualize.ipynb`. For example, we provide a code to generate an interactive html file, as shown in the below figure. Pre-constructed tSNE and HTML files can be downloaded from the [google drive](https://drive.google.com/file/d/1N1aaQzUfCOfkmIvaR62FZ9HK0DdsGxNW/view?usp=sharing).
+
+<p align="center" >
+    <img src=assets/example_visualization.png width="20%">
+</p>
 
 ```
-python construct_infoverse.py --train_type 0000_base --seed_list "1234 2345 3456" --epochs 10 --dataset sst2 --seed 1234 --backbone roberta_large
+visualize.ipynb
 ```
 
 ## Real-world Application #1: Data Pruning
